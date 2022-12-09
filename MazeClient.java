@@ -101,8 +101,6 @@ public class MazeClient extends JFrame {
     private Image ii;
     private final Color dotcolor = new Color(192, 192, 0);
     private Color mazecolor;
-
-    
     private boolean dying = false;
     //
 
@@ -155,7 +153,7 @@ public class MazeClient extends JFrame {
     private short[] screendata;
     private Timer timer;
 
-    public Board() {        //Method being called
+    public Board() {        //Method is being called
 
         loadImages();
         initVariables();
