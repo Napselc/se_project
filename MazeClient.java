@@ -104,6 +104,7 @@ public class MazeClient extends JFrame {
 
     
     private boolean dying = false;
+    //
 
     private final int blocksize = 24;
     private final int nrofblocks = 15;
