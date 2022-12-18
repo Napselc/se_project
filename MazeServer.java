@@ -26,35 +26,7 @@ import java.net.Socket;
 import javax.swing.ImageIcon;
 import javax.swing.JPanel;
 import javax.swing.Timer;
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.PrintWriter;
-import java.net.ServerSocket;
-import java.net.Socket;
-import java.awt.BasicStroke;
-import java.awt.Color;
-import java.awt.Dimension;
-import java.awt.Event;
-import java.awt.Font;
-import java.awt.FontMetrics;
-import java.awt.Graphics;
-import java.awt.Graphics2D;
-import java.awt.Image;
-import java.awt.Robot;
-import java.awt.Toolkit;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.awt.event.KeyAdapter;
-import java.awt.event.KeyEvent;
-import java.util.Date;
-//import java.util.logging.Level;
-//import java.util.logging.Logger;
 
-import javax.swing.ImageIcon;
-import static javax.swing.JFrame.EXIT_ON_CLOSE;
-import javax.swing.JPanel;
-import javax.swing.Timer;
 
 /**
  *
@@ -68,7 +40,7 @@ public class MazeServer extends JFrame {
     BufferedReader input;
     PrintWriter output;
     
-    private int reqdx, reqdy, viewdx, viewdy;
+    private int reqdx, reqdy, viewdx, viewdy,dx,dy;
     private boolean ingame = false;
     
     private void setPositions(Socket socket) {
@@ -82,14 +54,13 @@ public class MazeServer extends JFrame {
                     String moveLocationx = command.substring(5);
                     String moveLocationy = command.substring(5);
                     String sRdx = moveLocationx.substring(0, moveLocationx.lastIndexOf("."));
-                    String sRdy = moveLocationy.substring(moveLocationy.lastIndexOf(".") + 1, moveLocationy.length());
+                    String sRdy = moveLocationy.substring(moveLocationy.lastIndexOf(".") + 1);
                     reqdx = Integer.parseInt(sRdx);
                     reqdy = Integer.parseInt(sRdy);
                 }else{
                     ingame = Boolean.valueOf(command);
+                    }
                 }
-                }
-                //System.out.println("Ingame= " + ingame);
                 
         } catch (IOException e) {
             System.out.println("Player died: " + e);
@@ -97,7 +68,7 @@ public class MazeServer extends JFrame {
     }
     
     public MazeServer() throws IOException {
-        ServerSocket listener = new ServerSocket(3000);
+        listener = new ServerSocket(3000);
         System.out.println("Maze Server is Running");
         initUI();
         try {
@@ -122,74 +93,66 @@ public class MazeServer extends JFrame {
         add(new Board());
         setTitle("Server-Maze");
         setDefaultCloseOperation(EXIT_ON_CLOSE);
-        setSize(380, 420);
+        setSize(480, 540);
         setLocationRelativeTo(null);
         setVisible(true);        
     }
-    
-    
 
-    
-    
     class Board extends JPanel implements ActionListener {
 
     private Dimension d;
     private final Font smallfont = new Font("Helvetica", Font.BOLD, 14);
-    
 
-    private Image ii;
     private final Color dotcolor = new Color(192, 192, 0);
     private Color mazecolor;
-
-    
+    private boolean inGame = false;
     private boolean dying = false;
+    public boolean v1 = true;
+    public boolean v2 = true;
+    public boolean v3 = true;
+    public boolean v4 = true;
+    public boolean v5 = true;
+    public boolean v6 = true;
 
-    private final int blocksize = 24;
-    private final int nrofblocks = 15;
-    private final int scrsize = nrofblocks * blocksize;
-    private final int pacanimdelay = 2;
-    private final int pacmananimcount = 0;
-    private final int pacmanspeed = 6;
-    private final int ghostspeed = 6;
-
-    private int pacanimcount = pacanimdelay;
-    private int pacanimdir = 1;
-    private int pacmananimpos = 0;
-    private int nrofghosts = 6;
+    private final int BLOCK_SIZE = 24;
+    private final int N_BLOCKS = 20;
+    private int N_GHOSTS = 5;
+    private final int scrsize = N_BLOCKS * BLOCK_SIZE;
+    private final int pacmanspeed = 4;
+    private int currentSpeed = 3;
+    private final int validSpeeds[] = {1, 2, 3, 4};
     private int score, scoreTwo;
+    private final int MAX_GHOSTS = 6;
     private int[] dx, dy;
-    private int ghostx, ghosty, ghostdx, ghostdy;
-
-    private Image ghost;
-    private Image pacman1, pacman2up, pacman2left, pacman2right, pacman2down;
-    private Image pacman3up, pacman3down, pacman3left, pacman3right;
-    private Image pacman4up, pacman4down, pacman4left, pacman4right;
+    private int pacm2x, pacm2y, pacm2dx, pacm2dy;
+    private Image heart;
+    private Image pacman1, ghost, left, right, down, up;
+    private int[] ghost_x, ghost_y, ghost_dx, ghost_dy, ghostSpeed;
 
     private int pacmanx, pacmany, pacmandx, pacmandy;
     private int regdx, regdy, viewgdx, viewgdy;
-
     private final short leveldata[] = {
-        19, 22, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        25,16, 26, 26, 26, 26, 26, 18, 26, 26, 26, 26, 26, 22, 0,
-        0, 21, 0, 0, 0, 0, 0, 21, 0, 0, 0, 0, 0, 21, 0,
-        0, 21, 0, 19, 18, 18, 18, 16, 18, 18, 18, 22, 0, 21, 0,
-        0, 21, 0, 17, 16, 16, 16, 24, 16, 16, 16, 20, 0, 21, 0,
-        0, 21, 0, 17, 16, 16, 20, 0, 17, 16, 16, 20, 0, 21, 0,
-        0, 21, 0, 17, 16, 24, 28, 0, 25, 24, 16, 20, 0, 21, 0,
-        0, 17, 26, 16, 20, 0, 0, 0, 0, 0, 17, 20, 0, 21, 0,
-        0, 21, 0, 17, 16, 18, 18, 18, 18, 18, 16, 20, 0, 21, 0,
-        0, 21, 0, 25, 24, 24, 24, 24, 24, 16, 16, 20, 0, 21, 0,
-        0, 21, 0, 0, 0, 0, 0, 0, 0, 17, 16, 20, 0, 21, 0,
-        0, 21, 0, 27, 26, 26, 26, 22, 0, 25, 24, 24, 26, 20, 0,
-        0, 21, 0, 0, 0, 0, 0, 21, 0, 0, 0, 0, 0, 21, 0,
-        0, 25, 26, 26, 26, 26, 26, 24, 26, 26, 26, 26, 26, 16, 22,
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 25, 28
+            0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 21,  0,  0,  0,
+            0, 19, 26, 26, 18, 26, 18, 26, 26, 26, 26, 18, 26, 18, 26, 26, 24, 26, 22,  0,
+            0, 21,  0,  0, 21,  0, 21,  0,  0,  0,  0, 21,  0, 21,  0,  0,  0,  0, 21,  0,
+            0, 21,  0,  0, 21,  0, 17, 26, 26, 22,  0, 21,  0, 21,  0,  0,  0,  0, 21,  0,
+            0, 21,  0,  0, 21,  0, 21,  0,  0, 21,  0, 21,  0, 21,  0,  0,  0,  0, 21,  0,
+            0, 21,  0,  0, 21,  0, 17, 26, 26, 28,  0, 17, 26, 24, 26, 26, 26, 26, 20,  0,
+            0, 21,  0,  0, 21,  0, 21,  0,  0,  0,  0, 21,  0,  0,  0,  0,  0,  0, 21,  0,
+            0, 21,  0,  0, 21,  0, 17, 26, 26, 26, 26, 24, 26, 26, 26, 26, 22,  0, 21,  0,
+            0, 21,  0,  0, 21,  0, 21,  0,  0,  0,  0,  0,  0,  0,  0,  0, 21,  0, 21,  0,
+            0, 21,  0,  0, 21,  0, 17, 26, 26, 26, 26, 26, 26, 26, 26, 18, 28,  0, 21,  0,
+            0, 21,  0,  0, 21,  0, 21,  0,  0,  0,  0,  0,  0,  0,  0, 21,  0,  0, 21,  0,
+            0, 21,  0,  0, 21,  0, 25, 26, 26, 26, 26, 26, 18, 26, 26, 24, 26, 26, 20,  0,
+            0, 21,  0,  0, 21,  0,  0,  0,  0,  0,  0,  0, 21,  0,  0,  0,  0,  0, 21,  0,
+            0, 21,  0,  0, 17, 26, 26, 26, 26, 26, 26, 26, 24, 26, 26, 26, 26, 26, 20,  0,
+            26,16, 26, 26, 28,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 17, 26,
+            0, 21,  0,  0,  0,  0, 19, 26, 18, 26, 26, 26, 26, 26, 18, 26, 30,  0, 21,  0,
+            0, 17, 26, 26, 30,  0, 21,  0, 21,  0,  0,  0,  0,  0, 21,  0,  0,  0, 21,  0,
+            0, 21,  0,  0,  0,  0, 21,  0, 21,  0,  0,  0,  0,  0, 21,  0,  0,  0, 21,  0,
+            0, 25, 26, 26, 26, 26, 24, 26, 24, 26, 26, 26, 26, 26, 24, 26, 18, 26, 28,  0,
+            0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 21,  0,  0,  0,
     };
-
-    private final int validspeeds[] = {1, 2, 3, 4, 6, 8};
-    private final int maxspeed = 6;
-
-    private int currentspeed = 3;
     private short[] screendata;
     private Timer timer;
 
@@ -206,15 +169,41 @@ public class MazeServer extends JFrame {
         setDoubleBuffered(true);
         
     }
+        private void drawPowerUp(Graphics2D g2d)
+        {
+            if(this.v1){
+                g2d.drawImage(heart, 312, 72,this);//1st power up
+            }
+            if(this.v2){
+                g2d.drawImage(heart, 192, 168,this);//2nd power up
+            }
+            if(this.v3){
+                g2d.drawImage(heart, 432, 240,this);//3rd power up
+            }
+            if(this.v4){
+                g2d.drawImage(heart, 96, 336,this);//4th power up
+            }
+            if(this.v5){
+                g2d.drawImage(heart, 96, 384,this);//5th power up
+            }
+            if(this.v6){
+                g2d.drawImage(heart, 288, 360,this);//6th power up
+            }
+
+        }
 
     private void initVariables() {
 
-        screendata = new short[nrofblocks * nrofblocks];
+        screendata = new short[N_BLOCKS * N_BLOCKS];
         mazecolor = new Color(5, 100, 5);
-        d = new Dimension(400, 400);
+        d = new Dimension(480, 540);
         dx = new int[4];
         dy = new int[4];
-        
+        ghost_x = new int[MAX_GHOSTS];
+        ghost_dx = new int[MAX_GHOSTS];
+        ghost_y = new int[MAX_GHOSTS];
+        ghost_dy = new int[MAX_GHOSTS];
+        ghostSpeed = new int[MAX_GHOSTS];
         timer = new Timer(40, this);
         timer.start();
     }
@@ -233,10 +222,12 @@ public class MazeServer extends JFrame {
 
         } else {
 
-            movePacman();
-            drawPacman(g2d);
-            drawGhost(g2d);
-            moveGhosts();
+            movePacman1();
+            drawPacman1(g2d);
+            drawPacman2(g2d);
+            drawPowerUp(g2d);
+            movePacman2();
+            moveGhosts(g2d);
             checkMaze();
         }
     }
@@ -284,7 +275,7 @@ public class MazeServer extends JFrame {
         short i = 0;
         boolean finished = true;
 
-        while (i < nrofblocks * nrofblocks && finished) {
+        while (i < N_BLOCKS * N_BLOCKS && finished) {
 
             if ((screendata[i] & 48) != 0) {
                 finished = false;
@@ -298,20 +289,107 @@ public class MazeServer extends JFrame {
         }
     }
 
-    private void moveGhosts() {
-        //private int regdx, regdy, viewgdx, viewgdy;
+        private void moveGhosts(Graphics2D g2d) {
+
+            int pos;
+            int count;
+
+            for (int i = 0; i < N_GHOSTS; i++) {
+                if (ghost_x[i] % BLOCK_SIZE == 0 && ghost_y[i] % BLOCK_SIZE == 0) {
+                    pos = ghost_x[i] / BLOCK_SIZE + N_BLOCKS * (int) (ghost_y[i] / BLOCK_SIZE);
+
+                    count = 0;
+
+                    if ((screendata[pos] & 1) == 0 && ghost_dx[i] != 1) {
+                        dx[count] = -1;
+                        dy[count] = 0;
+                        count++;
+                    }
+
+                    if ((screendata[pos] & 2) == 0 && ghost_dy[i] != 1) {
+                        dx[count] = 0;
+                        dy[count] = -1;
+                        count++;
+                    }
+
+                    if ((screendata[pos] & 4) == 0 && ghost_dx[i] != -1) {
+                        dx[count] = 1;
+                        dy[count] = 0;
+                        count++;
+
+                    }
+
+                    if ((screendata[pos] & 8) == 0 && ghost_dy[i] != -1) {
+                        dx[count] = 0;
+                        dy[count] = 1;
+                        count++;
+                    }
+
+                    if (count == 0) {
+
+                        if ((screendata[pos] & 15) == 15) {
+                            ghost_dx[i]= 0;
+                            ghost_dy[i] = 0;
+                        } else {
+                            ghost_dx[i] = -ghost_dx[i];
+                            ghost_dy[i] = -ghost_dy[i];
+                        }
+
+                    } else {
+
+                        count = (int) (Math.random() * count);
+
+                        if (count > 3) {
+                            count = 3;
+                        }
+
+                        ghost_dx[i] = dx[count];
+                        ghost_dy[i] = dy[count];
+                    }
+
+                }
+
+                ghost_x[i] = ghost_x[i] + (ghost_dx[i] * ghostSpeed[i]);
+                ghost_y[i] = ghost_y[i] + (ghost_dy[i] * ghostSpeed[i]);
+                drawGhost(g2d, ghost_x[i] + 1, ghost_y[i] + 1);
+
+                if(ghost_x[i] > 456){
+                    ghost_x[i] = 0;
+                } else if (ghost_x[i] < 0) {
+                    ghost_x[i] = 456;
+                }
+                if(ghost_y[i] > 456){
+                    ghost_y[i] = 0;
+                } else if (ghost_y[i] < 0) {
+                    ghost_y[i] = 456;
+                }
+
+                if (pacmanx > (ghost_x[i] - 12) && pacmanx < (ghost_x[i] + 12)
+                        && pacmany > (ghost_y[i] - 12) && pacmany < (ghost_y[i] + 12)
+                        && inGame) {
+
+                    dying = true;
+                }
+            }
+        }
+        private void drawGhost(Graphics2D g2d, int x , int y) {
+            g2d.drawImage(ghost, x, y, this);
+        }
+
+    private void movePacman2() {
+
         short ch;
         int pos;
         
-        if (regdx == -ghostdx && regdy == -ghostdy) {
-            ghostdx = regdx;
-            ghostdy = regdy;
-            viewgdx = ghostdx;
-            viewgdy = ghostdy;
+        if (regdx == -pacm2dx && regdy == -pacm2dy) {
+            pacm2dx = regdx;
+            pacm2dy = regdy;
+            viewgdx = pacm2dx;
+            viewgdy = pacm2dy;
         }
         
-        if (ghostx % blocksize == 0 && ghosty % blocksize == 0) {
-            pos = ghostx / blocksize + nrofblocks * (int) (ghosty / blocksize);
+        if (pacm2x % BLOCK_SIZE == 0 && pacm2y % BLOCK_SIZE == 0) {
+            pos = pacm2x / BLOCK_SIZE + N_BLOCKS * (int) (pacm2y / BLOCK_SIZE);
             ch = screendata[pos];
 
             if ((ch & 16) != 0) {
@@ -324,59 +402,89 @@ public class MazeServer extends JFrame {
                         || (regdx == 1 && regdy == 0 && (ch & 4) != 0)
                         || (regdx == 0 && regdy == -1 && (ch & 2) != 0)
                         || (regdx == 0 && regdy == 1 && (ch & 8) != 0))) {
-                    ghostdx = regdx;
-                    ghostdy = regdy;
-                    viewgdx = ghostdx;
-                    viewgdy = ghostdy;
+                    pacm2dx = regdx;
+                    pacm2dy = regdy;
+                    viewgdx = pacm2dx;
+                    viewgdy = pacm2dy;
                 }
             }
 
             // Check for standstill
-            if ((ghostdx == -1 && ghostdy == 0 && (ch & 1) != 0)
-                    || (ghostdx == 1 && ghostdy == 0 && (ch & 4) != 0)
-                    || (ghostdx == 0 && ghostdy == -1 && (ch & 2) != 0)
-                    || (ghostdx == 0 && ghostdy == 1 && (ch & 8) != 0)) {
-                ghostdx = 0;
-                ghostdy = 0;
+            if ((pacm2dx == -1 && pacm2dy == 0 && (ch & 1) != 0)
+                    || (pacm2dx == 1 && pacm2dy == 0 && (ch & 4) != 0)
+                    || (pacm2dx == 0 && pacm2dy == -1 && (ch & 2) != 0)
+                    || (pacm2dx == 0 && pacm2dy == 1 && (ch & 8) != 0)) {
+                pacm2dx = 0;
+                pacm2dy = 0;
             }
         }
-        ghostx = ghostx + pacmanspeed * ghostdx;
-        ghosty = ghosty + pacmanspeed * ghostdy;
+        pacm2x = pacm2x + pacmanspeed * pacm2dx;
+        pacm2y = pacm2y + pacmanspeed * pacm2dy;
+
+        if(pacm2x == 312 && pacm2y == 72){
+            this.v1 = false;
+        }
+        if(pacm2x == 192 && pacm2y == 168){
+            this.v2 = false;
+        }
+        if(pacm2x == 432 && pacm2y == 240){
+            this.v3 = false;
+        }
+        if(pacm2x == 96 && pacm2y == 336){
+            this.v4 = false;
+        }
+        if(pacm2x == 96 && pacm2y == 384){
+            this.v5 = false;
+        }
+        if(pacm2x == 288 && pacm2y == 360){
+            this.v6 = false;
+        }
+
+        if(pacm2x > 456){
+            pacm2x = 0;
+        } else if (pacm2x < 0) {
+            pacm2x = 456;
+        }
+        if(pacm2y > 456){
+            pacm2y = 0;
+        } else if (pacm2y < 0) {
+            pacm2y = 456;
+        }
         
     }
 
-    private void drawGhost(Graphics2D g2d) {
+    private void drawPacman2(Graphics2D g2d) {
 
         if (viewgdx == -1) {
-            drawGhostLeft(g2d);
+            drawPacman2Left(g2d);
         } else if (viewgdx == 1) {
-            drawGhostRight(g2d);
+            drawPacman2Right(g2d);
         } else if (viewgdy == -1) {
-            drawGhostUp(g2d);
+            drawPacman2Up(g2d);
         } else {
-            drawGhostDown(g2d);
+            drawPacman2Down(g2d);
         }
     }
 
-    private void drawGhostUp(Graphics2D g2d) {
-        g2d.drawImage(ghost, ghostx + 1, ghosty + 1, this);    
+    private void drawPacman2Up(Graphics2D g2d) {
+        g2d.drawImage(pacman1, pacm2x + 1, pacm2y + 1, this);
     }
 
-    private void drawGhostDown(Graphics2D g2d) {
-        g2d.drawImage(ghost, ghostx + 1, ghosty + 1, this);        
+    private void drawPacman2Down(Graphics2D g2d) {
+        g2d.drawImage(pacman1, pacm2x + 1, pacm2y + 1, this);
     }
 
-    private void drawGhostLeft(Graphics2D g2d) {
+    private void drawPacman2Left(Graphics2D g2d) {
 
-        g2d.drawImage(ghost, ghostx + 1, ghosty + 1, this);
+        g2d.drawImage(pacman1, pacm2x + 1, pacm2y + 1, this);
     }
 
-    private void drawGhostRight(Graphics2D g2d) {
+    private void drawPacman2Right(Graphics2D g2d) {
 
-        g2d.drawImage(ghost, ghostx + 1, ghosty + 1, this);
+        g2d.drawImage(pacman1, pacm2x + 1, pacm2y + 1, this);
     }
 
-    private void movePacman() {
+    private void movePacman1() {
 
         int pos;
         short ch;
@@ -388,8 +496,8 @@ public class MazeServer extends JFrame {
             viewdy = pacmandy;
         }
 
-        if (pacmanx % blocksize == 0 && pacmany % blocksize == 0) {
-            pos = pacmanx / blocksize + nrofblocks * (int) (pacmany / blocksize);
+        if (pacmanx % BLOCK_SIZE == 0 && pacmany % BLOCK_SIZE == 0) {
+            pos = pacmanx / BLOCK_SIZE + N_BLOCKS * (int) (pacmany / BLOCK_SIZE);
             ch = screendata[pos];
 
             if ((ch & 16) != 0) {
@@ -420,35 +528,65 @@ public class MazeServer extends JFrame {
         }
         pacmanx = pacmanx + pacmanspeed * pacmandx;
         pacmany = pacmany + pacmanspeed * pacmandy;
-    }
 
-    private void drawPacman(Graphics2D g2d) {
+        if(pacmanx == 312 && pacmany == 72){
+            this.v1 = false;
+        }
+        if(pacmanx == 192 && pacmany == 168){
+            this.v2 = false;
+        }
+        if(pacmanx == 432 && pacmany == 240){
+            this.v3 = false;
+        }
+        if(pacmanx == 96 && pacmany == 336){
+            this.v4 = false;
+        }
+        if(pacmanx == 96 && pacmany == 384){
+            this.v5 = false;
+        }
+        if(pacmanx == 288 && pacmany == 360){
+            this.v6 = false;
+        }
 
-        if (viewdx == -1) {
-            drawPacnanLeft(g2d);
-        } else if (viewdx == 1) {
-            drawPacmanRight(g2d);
-        } else if (viewdy == -1) {
-            drawPacmanUp(g2d);
-        } else {
-            drawPacmanDown(g2d);
+        if(pacmanx > 456){
+            pacmanx = 0;
+        } else if (pacmanx < 0) {
+            pacmanx = 456;
+        }
+        if(pacmany > 456){
+            pacmany = 0;
+        } else if (pacmany < 0) {
+            pacmany = 456;
         }
     }
 
-    private void drawPacmanUp(Graphics2D g2d) {
+    private void drawPacman1(Graphics2D g2d) {
+
+        if (viewdx == -1) {
+            drawPacman1Left(g2d);
+        } else if (viewdx == 1) {
+            drawPacman1Right(g2d);
+        } else if (viewdy == -1) {
+            drawPacman1Up(g2d);
+        } else {
+            drawPacman1Down(g2d);
+        }
+    }
+
+    private void drawPacman1Up(Graphics2D g2d) {
         g2d.drawImage(pacman1, pacmanx + 1, pacmany + 1, this);    
     }
 
-    private void drawPacmanDown(Graphics2D g2d) {
+    private void drawPacman1Down(Graphics2D g2d) {
         g2d.drawImage(pacman1, pacmanx + 1, pacmany + 1, this);        
     }
 
-    private void drawPacnanLeft(Graphics2D g2d) {
+    private void drawPacman1Left(Graphics2D g2d) {
 
         g2d.drawImage(pacman1, pacmanx + 1, pacmany + 1, this);
     }
 
-    private void drawPacmanRight(Graphics2D g2d) {
+    private void drawPacman1Right(Graphics2D g2d) {
 
         g2d.drawImage(pacman1, pacmanx + 1, pacmany + 1, this);
     }
@@ -458,28 +596,28 @@ public class MazeServer extends JFrame {
         short i = 0;
         int x, y;
 
-        for (y = 0; y < scrsize; y += blocksize) {
-            for (x = 0; x < scrsize; x += blocksize) {
+        for (y = 0; y < scrsize; y += BLOCK_SIZE) {
+            for (x = 0; x < scrsize; x += BLOCK_SIZE) {
 
                 g2d.setColor(mazecolor);
                 g2d.setStroke(new BasicStroke(2));
 
                 if ((screendata[i] & 1) != 0) { 
-                    g2d.drawLine(x, y, x, y + blocksize - 1);
+                    g2d.drawLine(x, y, x, y + BLOCK_SIZE - 1);
                 }
 
                 if ((screendata[i] & 2) != 0) { 
-                    g2d.drawLine(x, y, x + blocksize - 1, y);
+                    g2d.drawLine(x, y, x + BLOCK_SIZE - 1, y);
                 }
 
                 if ((screendata[i] & 4) != 0) { 
-                    g2d.drawLine(x + blocksize - 1, y, x + blocksize - 1,
-                            y + blocksize - 1);
+                    g2d.drawLine(x + BLOCK_SIZE - 1, y, x + BLOCK_SIZE - 1,
+                            y + BLOCK_SIZE - 1);
                 }
 
                 if ((screendata[i] & 8) != 0) { 
-                    g2d.drawLine(x, y + blocksize - 1, x + blocksize - 1,
-                            y + blocksize - 1);
+                    g2d.drawLine(x, y + BLOCK_SIZE - 1, x + BLOCK_SIZE - 1,
+                            y + BLOCK_SIZE - 1);
                 }
 
                 if ((screendata[i] & 16) != 0) { 
@@ -496,14 +634,14 @@ public class MazeServer extends JFrame {
         score = 0;
         scoreTwo = 0;
         initLevel();
-        nrofghosts = 0;
-        currentspeed = 1;
+        N_GHOSTS = 5;
+        currentSpeed = 3;
     }
 
     private void initLevel() {
 
         int i;
-        for (i = 0; i < nrofblocks * nrofblocks; i++) {
+        for (i = 0; i < N_BLOCKS * N_BLOCKS; i++) {
             screendata[i] = leveldata[i];
         }
 
@@ -511,18 +649,36 @@ public class MazeServer extends JFrame {
     }
 
     private void continueLevel() {
-        
-        ghosty = 0 * blocksize;
-        ghostx = 0 * blocksize;
-        ghostdy = 0;
-        ghostdx = 0;
+
+        int dx = 1;
+        int random;
+
+        for (int i = 0; i < N_GHOSTS; i++) {
+
+            ghost_y[i] = 11 * BLOCK_SIZE; //start position
+            ghost_x[i] = 10 * BLOCK_SIZE;
+            ghost_dy[i] = 0;
+            ghost_dx[i] = dx;
+            dx = -dx;
+            random = (int) (Math.random() * (currentSpeed + 1));
+
+            if (random > currentSpeed) {
+                random = currentSpeed;
+            }
+
+            ghostSpeed[i] = validSpeeds[random];
+        }
+        pacm2y = 4 * BLOCK_SIZE;
+        pacm2x = 4 * BLOCK_SIZE;
+        pacm2dy = 0;
+        pacm2dx = 0;
         regdy = 0;
         regdx = 0;
         viewgdx = -1;
         viewgdy = 0;
 
-        pacmanx = 14 * blocksize;
-        pacmany = 14 * blocksize;
+        pacmanx = 14 * BLOCK_SIZE;
+        pacmany = 13 * BLOCK_SIZE;
         pacmandx = 0;
         pacmandy = 0;
         reqdx = 0;
@@ -534,20 +690,10 @@ public class MazeServer extends JFrame {
 
     private void loadImages() {
 
-        ghost = new ImageIcon("./images/ghost.png").getImage();
         pacman1 = new ImageIcon("./images/pacman.png").getImage();
-        pacman2up = new ImageIcon("./images/up1.png").getImage();
-        pacman3up = new ImageIcon("./images/up2.png").getImage();
-        pacman4up = new ImageIcon("./images/up3.png").getImage();
-        pacman2down = new ImageIcon("./images/down1.png").getImage();
-        pacman3down = new ImageIcon("./images/down2.png").getImage();
-        pacman4down = new ImageIcon("./images/down3.png").getImage();
-        pacman2left = new ImageIcon("./images/left1.png").getImage();
-        pacman3left = new ImageIcon("./images/left2.png").getImage();
-        pacman4left = new ImageIcon("./images/left3.png").getImage();
-        pacman2right = new ImageIcon("./images/right1.png").getImage();
-        pacman3right = new ImageIcon("./images/right2.png").getImage();
-        pacman4right = new ImageIcon("./images/right3.png").getImage();
+        heart = new ImageIcon("./images/heart.png").getImage();
+        ghost = new ImageIcon("./images/ghost.gif").getImage();
+
     }
 
     @Override
@@ -574,7 +720,6 @@ public class MazeServer extends JFrame {
             showIntroScreen(g2d);
         }
 
-        g2d.drawImage(ii, 5, 5, this);
         Toolkit.getDefaultToolkit().sync();
         g2d.dispose();
     }
